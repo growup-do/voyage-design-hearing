@@ -341,13 +341,102 @@
     letter-spacing: 1px;
   }
 
-  /* Print */
+  /* ===== PDF / Print mode ===== */
+  .print-value {
+    display: block;
+    width: 100%;
+    min-height: 1.6em;
+    padding: 8px 10px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    color: #000;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+  .print-value.print-textarea { min-height: 3.4em; }
+  .print-value:empty::before { content: " "; color: transparent; }
+
+  body.printing .toolbar,
+  body.printing .toc,
+  body.printing .submit-area,
+  body.printing footer.brand-footer,
+  body.printing .note {
+    display: none !important;
+  }
+  body.printing header::after { display: none; }
+
   @media print {
-    .toolbar, .submit-area .actions, .toc { display: none; }
-    body { background: white; }
-    section { break-inside: avoid; border: none; padding: 16px 0; }
-    .submit-area { background: white; color: black; }
-    .submit-area h2, .submit-area p { color: black; }
+    .toolbar, .toc, .submit-area, footer.brand-footer, .note { display: none !important; }
+    body { background: white; font-size: 11pt; }
+    header {
+      background: white !important;
+      color: var(--black) !important;
+      padding: 12px 0 20px !important;
+      border-bottom: 2px solid var(--black);
+    }
+    header::after { display: none; }
+    header .brand { color: var(--dark) !important; }
+    header h1 { color: var(--black) !important; font-size: 22pt; }
+    header p.intro { color: var(--dark) !important; }
+
+    main { padding: 8px 0; max-width: 100%; }
+    section {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      border: 1px solid #ccc;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      background: white !important;
+    }
+    section h2 { color: var(--black) !important; }
+    section h2 .num { background: var(--yellow) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    section .title { font-size: 16pt; }
+    section .subtitle { font-size: 10pt; }
+    .field { margin-bottom: 12px; break-inside: avoid; page-break-inside: avoid; }
+    .field .label { font-size: 10pt; }
+    .field .label .req,
+    .field .label .imp,
+    .field .label .nice {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Hide raw inputs/textareas — replaced by .print-value via JS */
+    input[type="text"],
+    input[type="url"],
+    input[type="email"],
+    input[type="number"],
+    textarea,
+    select {
+      display: none !important;
+    }
+    .print-value { display: block !important; }
+    .print-value.print-input { background: white; border: none; border-bottom: 1px solid #888; padding: 4px 0; }
+
+    /* Radios / Checkboxes: show all options but visually highlight checked */
+    .opt span {
+      background: white !important;
+      color: var(--dark) !important;
+      border: 1px solid #ccc !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .opt input:checked + span {
+      background: var(--black) !important;
+      color: var(--yellow) !important;
+      border-color: var(--black) !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm 10mm 14mm;
   }
 </style>
 </head>
@@ -366,10 +455,7 @@
 
 <div class="toolbar">
   <div class="status" id="status">自動保存ON</div>
-  <button class="btn" type="button" onclick="downloadText()">💾 テキスト出力</button>
-  <button class="btn" type="button" onclick="window.print()">🖨 印刷</button>
-  <button class="btn primary" type="button" onclick="sendMail()">📧 GROW UPへ送信</button>
-  <button class="btn danger" type="button" onclick="clearAll()">🗑 リセット</button>
+  <button class="btn primary" type="button" onclick="savePDF()">📄 PDFで保存</button>
 </div>
 
 <main>
@@ -1023,12 +1109,10 @@
   </form>
 
   <div class="submit-area">
-    <h2>SUBMIT</h2>
-    <p>入力内容を GROW UP へ送信、またはダウンロードして共有ください。</p>
+    <h2>SAVE</h2>
+    <p>記入内容は自動保存されています。PDF として保存・共有することもできます。</p>
     <div class="actions">
-      <button class="btn primary" type="button" onclick="sendMail()">📧 GROW UP（suzuki@growup-do.com）へ送信</button>
-      <button class="btn" type="button" onclick="downloadText()">💾 テキストファイルとして保存</button>
-      <button class="btn" type="button" onclick="window.print()">🖨 印刷 / PDF保存</button>
+      <button class="btn primary" type="button" onclick="savePDF()">📄 PDFで保存</button>
     </div>
   </div>
 
@@ -1094,181 +1178,54 @@ document.addEventListener("input", () => saveAll());
 document.addEventListener("change", () => saveAll());
 window.addEventListener("load", () => loadAll());
 
-// ============= Build text output =============
-function buildText(){
-  const get = key => {
-    const el = document.querySelector("[data-key='"+ key +"']");
-    return el ? el.value.trim() : "";
-  };
-  const radio = name => {
-    const el = document.querySelector("input[name='"+ name +"']:checked");
-    return el ? el.value : "";
-  };
-  const checks = name => {
-    return Array.from(document.querySelectorAll("input[name='"+ name +"']:checked")).map(i => i.value).join(" / ");
-  };
+// ============= PDF 保存 =============
+// 入力欄を「内容が全て見えるブロック」に差し替えてから印刷 → PDF保存。
+// 印刷完了後（afterprint）に元に戻す。
+let _printSnapshot = [];
 
-  const line = (label, val) => val ? `　${label}：${val}\n` : `　${label}：（未記入）\n`;
-  const block = (label, val) => val ? `\n【${label}】\n${val.split("\n").map(l => "　" + l).join("\n")}\n` : `\n【${label}】（未記入）\n`;
-  const SEP = "================================================================\n";
-  const sub = "────────────────────────────────────────────\n";
-
-  let out = "";
-  out += SEP;
-  out += "　愛沢えみり 様 公式サイト　デザインヒアリングシート（回答）\n";
-  out += SEP;
-  out += `提出日　：${new Date().toLocaleDateString("ja-JP")}\n`;
-  out += `ご記入者：${get("basic_name")}\n`;
-  out += `Email　 ：${get("basic_email")}\n`;
-  out += `回答日　：${get("basic_date")}\n\n`;
-
-  out += sub + "■ 1. ブランドの核\n" + sub;
-  out += line("一文表現（30字以内）", get("b_oneline"));
-  out += line("呼ばれたい言葉", [get("b_called1"),get("b_called2"),get("b_called3")].filter(Boolean).join(" / "));
-  out += line("呼ばれたくない言葉", [get("b_notcalled1"),get("b_notcalled2"),get("b_notcalled3")].filter(Boolean).join(" / "));
-  out += line("空気の温度", radio("b_temp"));
-  out += line("重さ", radio("b_weight"));
-  out += line("速度", radio("b_speed"));
-  out += line("明るさ", radio("b_bright"));
-  out += line("形容詞", get("b_adjs"));
-  out += line("ものに例えると", get("b_thing"));
-  out += line("場所に例えると", get("b_place"));
-  out += line("香りに例えると", get("b_scent"));
-
-  out += "\n" + sub + "■ 2. 参考サイト\n" + sub;
-  for (let i=1;i<=5;i++){
-    const u=get(`r_like${i}_url`), w=get(`r_like${i}_why`);
-    if (u || w) out += `　好き ${i}：${u}　／　${w}\n`;
-  }
-  for (let i=1;i<=3;i++){
-    const u=get(`r_avoid${i}_url`), w=get(`r_avoid${i}_why`);
-    if (u || w) out += `　避けたい ${i}：${u}　／　${w}\n`;
-  }
-  out += line("好きな雑誌", get("r_mag"));
-  out += line("好きな空間", get("r_space"));
-  out += line("好きな写真集・装丁", get("r_book"));
-
-  out += "\n" + sub + "■ 3. カラー\n" + sub;
-  out += line("既存ブランドカラー", radio("c_brand"));
-  out += line("メインカラー方向性", checks("c_main"));
-  out += line("その他のカラー希望", get("c_other"));
-  out += line("絶対に避けたい色", get("c_avoid"));
-
-  out += "\n" + sub + "■ 4. タイポグラフィ\n" + sub;
-  out += line("和文書体", radio("t_jp"));
-  out += line("具体的な和文書体", get("t_jp_specific"));
-  out += line("欧文書体", radio("t_en"));
-  out += line("お名前ロゴタイプ", radio("t_logo"));
-  out += line("文字サイズ", radio("t_size"));
-
-  out += "\n" + sub + "■ 5. 写真・ビジュアル素材\n" + sub;
-  out += line("写真量", radio("v_count"));
-  out += line("使用権利", radio("v_right"));
-  out += line("共有方法", radio("v_share"));
-  out += line("新規撮影予算", radio("v_shoot"));
-  out += line("撮影テーマ", get("v_shoot_theme"));
-  out += line("ヒーロー画像想定", radio("v_hero"));
-
-  out += "\n" + sub + "■ 6. モーション\n" + sub;
-  out += line("動きの強さ", radio("m_level"));
-  out += line("動画背景", radio("m_video"));
-
-  out += "\n" + sub + "■ 7. コンテンツ\n" + sub;
-  out += block("想いの核心メッセージ", get("con_message"));
-  out += block("ヒストリー", get("con_history"));
-  out += "\n　[著書5冊]\n";
-  for (let i=1;i<=5;i++){
-    const v = get(`con_book${i}`);
-    if (v) out += `　　${i}. ${v}\n`;
-  }
-  out += "\n　[各事業]\n";
-  for (let i=1;i<=5;i++){
-    const v = get(`con_biz${i}`);
-    if (v) out += `　　・${v}\n`;
-  }
-  out += line("\n事業の表示優先順位", get("con_biz_order"));
-  out += line("ニュースカテゴリ", checks("con_news_cat"));
-  out += line("その他カテゴリ", get("con_news_cat_other"));
-  out += line("ニュース移行", radio("con_news_migrate"));
-  out += block("コラムテーマ", get("con_column"));
-  out += line("想定文字数", get("con_column_len"));
-  out += line("初回公開時の本数", get("con_column_count"));
-
-  out += "\n" + sub + "■ 8. お問い合わせフォーム\n" + sub;
-  out += line("フォーム分岐", checks("ct_branch"));
-  out += block("受信先メール", get("ct_email"));
-  out += line("自動返信メール", radio("ct_auto"));
-
-  out += "\n" + sub + "■ 9. SNS連携\n" + sub;
-  out += line("Instagram", get("sns_ig"));
-  out += line("YouTube", get("sns_yt"));
-  out += line("TikTok", get("sns_tt"));
-  out += line("X(Twitter)", get("sns_x"));
-  out += line("LINE公式", get("sns_line"));
-  out += line("その他", get("sns_other"));
-  out += line("IGフィード表示", radio("sns_feed"));
-
-  out += "\n" + sub + "■ 10. 英語版\n" + sub;
-  out += line("翻訳ソース", radio("en_src"));
-  out += line("構造", radio("en_struct"));
-  out += block("強調したいメッセージ", get("en_emphasis"));
-
-  out += "\n" + sub + "■ 11. NG・タブー\n" + sub;
-  out += block("NG事項", get("ng_topic"));
-  out += block("過去の話題で配慮すべきこと", get("ng_past"));
-  out += block("写真NG", get("ng_photo"));
-
-  out += "\n" + sub + "■ 12. 承認フロー\n" + sub;
-  out += line("最終判断者", radio("ap_decider"));
-  out += line("優先する意見", get("ap_priority"));
-  out += line("確認TAT", radio("ap_turn"));
-  out += line("承認の進め方", radio("ap_flow"));
-
-  out += "\n" + sub + "■ 13. その他\n" + sub;
-  out += block("自由記述", get("other"));
-
-  out += "\n" + SEP + "　以上\n" + SEP;
-  return out;
+function prepareForPrint(){
+  _printSnapshot = [];
+  const targets = document.querySelectorAll(
+    "input[type=text], input[type=url], input[type=email], input[type=number], textarea"
+  );
+  targets.forEach(el => {
+    if (el.closest(".toolbar")) return;
+    const div = document.createElement("div");
+    div.className = "print-value " + (el.tagName === "TEXTAREA" ? "print-textarea" : "print-input");
+    div.textContent = el.value || " ";
+    // 元のインライン display を退避し、非表示に
+    const origDisplay = el.style.display;
+    el.style.display = "none";
+    el.parentNode.insertBefore(div, el.nextSibling);
+    _printSnapshot.push({ el, div, origDisplay });
+  });
+  document.body.classList.add("printing");
 }
 
-// ============= Actions =============
-function downloadText(){
-  const text = buildText();
-  const name = (document.querySelector("[data-key='basic_name']").value || "回答").replace(/[^\w぀-ヿ㐀-鿿]/g, "_");
-  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `愛沢えみり様_デザインヒアリング_${name}_${new Date().toISOString().slice(0,10)}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  flashStatus("テキスト出力しました");
+function cleanupAfterPrint(){
+  _printSnapshot.forEach(s => {
+    s.el.style.display = s.origDisplay || "";
+    if (s.div && s.div.parentNode) s.div.parentNode.removeChild(s.div);
+  });
+  _printSnapshot = [];
+  document.body.classList.remove("printing");
 }
 
-function sendMail(){
-  const text = buildText();
-  const name = document.querySelector("[data-key='basic_name']").value || "(無記入)";
-  const subject = `愛沢えみり様 公式サイト デザインヒアリング 回答（${name}）`;
-  // mailto has length limits — provide a hint
-  const limit = 1600;
-  let body = text;
-  let truncated = "";
-  if (text.length > limit){
-    body = text.slice(0, limit);
-    truncated = "\n\n... ※ 全文が長いため、メーラーで切り詰められる可能性があります。\n　全文は「テキスト出力」ボタンでファイル化し、添付してお送りください。";
-  }
-  const href = `mailto:suzuki@growup-do.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body + truncated)}`;
-  window.location.href = href;
-  flashStatus("メーラーを起動します");
+function savePDF(){
+  prepareForPrint();
+  flashStatus("PDFプレビューを開きます");
+  // 描画反映待ち
+  setTimeout(() => {
+    window.print();
+  }, 80);
 }
 
-function clearAll(){
-  if (!confirm("入力内容をすべてリセットします。よろしいですか？")) return;
-  localStorage.removeItem(STORAGE_KEY);
-  document.querySelectorAll("[data-key]").forEach(el => el.value = "");
-  document.querySelectorAll("input[type=radio], input[type=checkbox]").forEach(el => el.checked = false);
-  flashStatus("リセットしました");
-}
+// afterprint で必ず元に戻す（印刷キャンセル時も発火）
+window.addEventListener("afterprint", cleanupAfterPrint);
+// 古いブラウザのフォールバック
+window.matchMedia && window.matchMedia("print").addEventListener("change", e => {
+  if (!e.matches) cleanupAfterPrint();
+});
 </script>
 
 </body>
