@@ -504,7 +504,8 @@
 
 <div class="toolbar">
   <div class="status" id="status">自動保存ON</div>
-  <button class="btn primary" type="button" onclick="savePDF()">📄 PDFで保存</button>
+  <button class="btn" type="button" onclick="savePDF()">📄 PDFで保存</button>
+  <button class="btn primary" type="button" onclick="sendMail()">📧 GROW UPへ送信</button>
 </div>
 
 <main>
@@ -1060,10 +1061,11 @@
   </form>
 
   <div class="submit-area">
-    <h2>SAVE</h2>
-    <p>記入内容は自動保存されています。PDF として保存・共有することもできます。</p>
+    <h2>SAVE / SEND</h2>
+    <p>記入内容は自動保存されています。PDFとして保存、または GROW UP（suzuki@growup-do.com）へ送信できます。</p>
     <div class="actions">
-      <button class="btn primary" type="button" onclick="savePDF()">📄 PDFで保存</button>
+      <button class="btn" type="button" onclick="savePDF()">📄 PDFで保存</button>
+      <button class="btn primary" type="button" onclick="sendMail()">📧 GROW UPへ送信</button>
     </div>
   </div>
 
@@ -1128,6 +1130,152 @@ function flashStatus(msg){
 document.addEventListener("input", () => saveAll());
 document.addEventListener("change", () => saveAll());
 window.addEventListener("load", () => loadAll());
+
+// ============= GROW UPへメール送信 =============
+function buildText(){
+  const get = key => {
+    const el = document.querySelector("[data-key='"+ key +"']");
+    return el ? el.value.trim() : "";
+  };
+  const radio = name => {
+    const el = document.querySelector("input[name='"+ name +"']:checked");
+    return el ? el.value : "";
+  };
+  const checks = name => {
+    return Array.from(document.querySelectorAll("input[name='"+ name +"']:checked")).map(i => i.value).join(" / ");
+  };
+  const line  = (label, val) => `　${label}：${val || "（未記入）"}\n`;
+  const block = (label, val) => val
+    ? `\n【${label}】\n${val.split("\n").map(l => "　" + l).join("\n")}\n`
+    : `\n【${label}】（未記入）\n`;
+  const SEP = "================================================================\n";
+  const sub = "────────────────────────────────────────────\n";
+
+  let out = "";
+  out += SEP;
+  out += "　愛沢えみり 様 公式サイト　デザインヒアリング 回答\n";
+  out += SEP;
+  out += `提出日時：${new Date().toLocaleString("ja-JP")}\n\n`;
+
+  out += sub + "■ 1. ブランドの核\n" + sub;
+  out += line("一文表現（30字以内）", get("b_oneline"));
+  out += line("呼ばれたい言葉", [get("b_called1"),get("b_called2"),get("b_called3")].filter(Boolean).join(" / "));
+  out += line("呼ばれたくない言葉", [get("b_notcalled1"),get("b_notcalled2"),get("b_notcalled3")].filter(Boolean).join(" / "));
+  out += line("空気の温度", radio("b_temp"));
+  out += line("重さ", radio("b_weight"));
+  out += line("速度", radio("b_speed"));
+  out += line("明るさ", radio("b_bright"));
+  out += line("形容詞", get("b_adjs"));
+  out += line("ものに例えると", get("b_thing"));
+  out += line("場所に例えると", get("b_place"));
+  out += line("香りに例えると", get("b_scent"));
+
+  out += "\n" + sub + "■ 2. 参考サイト\n" + sub;
+  for (let i=1;i<=5;i++){
+    const u=get(`r_like${i}_url`), w=get(`r_like${i}_why`);
+    if (u || w) out += `　好き ${i}：${u}　／　${w}\n`;
+  }
+  for (let i=1;i<=3;i++){
+    const u=get(`r_avoid${i}_url`), w=get(`r_avoid${i}_why`);
+    if (u || w) out += `　避けたい ${i}：${u}　／　${w}\n`;
+  }
+  out += line("好きな雑誌", get("r_mag"));
+  out += line("好きな空間", get("r_space"));
+  out += line("好きな写真集・装丁", get("r_book"));
+
+  out += "\n" + sub + "■ 3. カラー\n" + sub;
+  out += line("既存ブランドカラー", radio("c_brand"));
+  out += line("メインカラー方向性", checks("c_main"));
+  out += line("その他のカラー希望", get("c_other"));
+  out += line("絶対に避けたい色", get("c_avoid"));
+
+  out += "\n" + sub + "■ 4. タイポグラフィ\n" + sub;
+  out += line("和文書体", radio("t_jp"));
+  out += line("具体的な和文書体", get("t_jp_specific"));
+  out += line("欧文書体", radio("t_en"));
+  out += line("お名前ロゴタイプ", radio("t_logo"));
+  out += line("文字サイズ", radio("t_size"));
+
+  out += "\n" + sub + "■ 5. モーション\n" + sub;
+  out += line("動きの強さ", radio("m_level"));
+  out += line("動画背景", radio("m_video"));
+
+  out += "\n" + sub + "■ 6. コンテンツ\n" + sub;
+  out += block("想いの核心メッセージ", get("con_message"));
+  out += block("ヒストリー", get("con_history"));
+  out += "\n　[著書5冊]\n";
+  for (let i=1;i<=5;i++){
+    const v = get(`con_book${i}`);
+    if (v) out += `　　${i}. ${v}\n`;
+  }
+  const bizNames = ["Emiria Wiz","Venus Beauty Clinic","Norm Plus","Maison de Beauté","Lumily"];
+  out += "\n　[各事業]\n";
+  for (let i=1;i<=5;i++){
+    const c = get(`con_biz${i}_copy`), u = get(`con_biz${i}_url`);
+    if (c || u) out += `　　・${bizNames[i-1]}\n　　　　キャッチコピー：${c}\n　　　　URL：${u}\n`;
+  }
+  out += line("事業の表示優先順位", get("con_biz_order"));
+  out += line("ニュースカテゴリ", checks("con_news_cat"));
+  out += line("その他カテゴリ", get("con_news_cat_other"));
+  out += block("コラムテーマ", get("con_column"));
+  out += line("想定文字数", get("con_column_len"));
+  out += line("初回公開時の本数", get("con_column_count"));
+
+  out += "\n" + sub + "■ 7. お問い合わせフォーム\n" + sub;
+  out += line("フォーム分岐", checks("ct_branch"));
+  out += block("受信先メール", get("ct_email"));
+  out += line("自動返信メール", radio("ct_auto"));
+
+  out += "\n" + sub + "■ 8. SNS連携\n" + sub;
+  out += line("Instagram", get("sns_ig"));
+  out += line("YouTube", get("sns_yt"));
+  out += line("TikTok", get("sns_tt"));
+  out += line("X(Twitter)", get("sns_x"));
+  out += line("LINE公式", get("sns_line"));
+  out += line("その他", get("sns_other"));
+  out += line("IGフィード表示", radio("sns_feed"));
+
+  out += "\n" + sub + "■ 9. 英語版\n" + sub;
+  out += line("翻訳ソース", radio("en_src"));
+  out += line("構造", radio("en_struct"));
+  out += block("強調したいメッセージ", get("en_emphasis"));
+
+  out += "\n" + sub + "■ 10. NG・タブー\n" + sub;
+  out += block("NG事項", get("ng_topic"));
+  out += block("過去の話題で配慮すべきこと", get("ng_past"));
+  out += block("写真NG", get("ng_photo"));
+
+  out += "\n" + sub + "■ 11. 承認フロー\n" + sub;
+  out += line("確認・修正のターンアラウンド", radio("ap_turn"));
+
+  out += "\n" + sub + "■ 12. その他\n" + sub;
+  out += block("自由記述", get("other"));
+
+  out += "\n" + SEP + "　以上\n" + SEP;
+  return out;
+}
+
+function sendMail(){
+  const text = buildText();
+  const subject = "愛沢えみり様 公式サイト デザインヒアリング 回答";
+  // mailtoは長文だとメーラーで切られることがあるため、本文が長い場合は警告
+  const LIMIT = 1800;
+  let body = text;
+  let note = "";
+  if (text.length > LIMIT) {
+    body = text.slice(0, LIMIT);
+    note = "\n\n────────────────────────────\n"
+         + "※ 全文が長いため、メーラーで本文が途中で\n"
+         + "　切られる場合があります。\n"
+         + "　その場合は「PDFで保存」ボタンで PDF を作成し、\n"
+         + "　このメールに添付してお送りください。\n";
+  }
+  const href = "mailto:suzuki@growup-do.com"
+             + "?subject=" + encodeURIComponent(subject)
+             + "&body=" + encodeURIComponent(body + note);
+  window.location.href = href;
+  flashStatus("メーラーを起動しました");
+}
 
 // ============= PDF 保存 =============
 // 入力欄を「内容が全て見えるブロック」に差し替えてから印刷 → PDF保存。
