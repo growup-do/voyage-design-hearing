@@ -225,6 +225,32 @@
   @media (max-width: 640px){
     .field .multi-row { grid-template-columns: 1fr; }
   }
+  /* 事業 (Emiria Wiz etc) 行：事業名は常時表示、入力欄2つ */
+  .field .biz-row {
+    display: grid;
+    grid-template-columns: 160px 1.4fr 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .field .biz-row .biz-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--black);
+    padding: 8px 12px;
+    background: var(--yellow);
+    border-left: 3px solid var(--black);
+  }
+  @media (max-width: 640px){
+    .field .biz-row {
+      grid-template-columns: 1fr;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--light3);
+      background: #fafafa;
+    }
+    .field .biz-row .biz-name { border-left: none; border-bottom: 2px solid var(--black); }
+  }
   /* Checkbox/radio list */
   .options {
     display: flex;
@@ -432,6 +458,29 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+
+    /* 事業行: 印刷時は事業名 + 値2つを縦並びで全文表示 */
+    .field .biz-row {
+      display: block !important;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      margin-bottom: 6px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .field .biz-row .biz-name {
+      display: inline-block;
+      background: var(--yellow) !important;
+      color: var(--black) !important;
+      padding: 2px 8px;
+      margin-bottom: 6px;
+      font-weight: 700;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .field .biz-row .print-value {
+      margin-top: 4px;
+    }
   }
 
   @page {
@@ -471,7 +520,6 @@
       <li><a href="#s2">参考サイト・ムード</a></li>
       <li><a href="#s3">カラー（配色）</a></li>
       <li><a href="#s4">タイポグラフィ</a></li>
-      <li><a href="#s5">写真・ビジュアル素材</a></li>
       <li><a href="#s6">モーション・動き</a></li>
       <li><a href="#s7">コンテンツの中身</a></li>
       <li><a href="#s8">お問い合わせフォーム</a></li>
@@ -485,26 +533,6 @@
 
   <form id="form">
 
-  <!-- 基本情報 -->
-  <section>
-    <h2><span class="num">00</span>BASIC</h2>
-    <div class="title">記入者・基本情報</div>
-    <div class="subtitle">提出時に必要な連絡先情報をお願いします。</div>
-
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>ご記入者のお名前</label>
-      <input type="text" data-key="basic_name" />
-    </div>
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>メールアドレス（返送・確認用）</label>
-      <input type="email" data-key="basic_email" />
-    </div>
-    <div class="field">
-      <label class="label"><span class="imp">◎重要</span>ご記入日</label>
-      <input type="text" data-key="basic_date" placeholder="例：2026.06.15" />
-    </div>
-  </section>
-
   <!-- 1. ブランド -->
   <section id="s1">
     <h2><span class="num">01</span>BRAND CORE</h2>
@@ -512,12 +540,12 @@
     <div class="subtitle">愛沢えみり様の本質を、言葉で捉えます。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>愛沢えみり様を「一文（30字以内）」で表現するとしたら？</label>
+      <label class="label">愛沢えみり様を「一文（30字以内）」で表現するとしたら？</label>
       <textarea data-key="b_oneline"></textarea>
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>「〇〇な人」と呼ばれたい言葉を3つ</label>
+      <label class="label">「〇〇な人」と呼ばれたい言葉を3つ</label>
       <div class="triple">
         <input type="text" data-key="b_called1" placeholder="①" />
         <input type="text" data-key="b_called2" placeholder="②" />
@@ -526,7 +554,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>反対に「〇〇とは絶対呼ばれたくない」言葉を3つ</label>
+      <label class="label">反対に「〇〇とは絶対呼ばれたくない」言葉を3つ</label>
       <div class="triple">
         <input type="text" data-key="b_notcalled1" placeholder="①" />
         <input type="text" data-key="b_notcalled2" placeholder="②" />
@@ -535,7 +563,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>サイト全体に流したい「空気の温度」</label>
+      <label class="label">サイト全体に流したい「空気の温度」</label>
       <div class="options" data-group="b_temp">
         <label class="opt"><input type="radio" name="b_temp" value="冷たい"><span>冷たい（クール）</span></label>
         <label class="opt"><input type="radio" name="b_temp" value="涼しい"><span>涼しい</span></label>
@@ -546,7 +574,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>「重さ」は？</label>
+      <label class="label">「重さ」は？</label>
       <div class="options" data-group="b_weight">
         <label class="opt"><input type="radio" name="b_weight" value="軽やか・カジュアル"><span>軽やか・カジュアル</span></label>
         <label class="opt"><input type="radio" name="b_weight" value="中庸"><span>中庸</span></label>
@@ -555,7 +583,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>「速度」は？</label>
+      <label class="label">「速度」は？</label>
       <div class="options" data-group="b_speed">
         <label class="opt"><input type="radio" name="b_speed" value="静か・ゆっくり"><span>静か・ゆっくり</span></label>
         <label class="opt"><input type="radio" name="b_speed" value="中庸"><span>中庸</span></label>
@@ -564,7 +592,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>「明るさ」は？</label>
+      <label class="label">「明るさ」は？</label>
       <div class="options" data-group="b_bright">
         <label class="opt"><input type="radio" name="b_bright" value="シック・暗め"><span>シック・暗め</span></label>
         <label class="opt"><input type="radio" name="b_bright" value="中庸"><span>中庸</span></label>
@@ -573,24 +601,24 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>形容詞で表すなら（5語まで自由記述）</label>
+      <label class="label">形容詞で表すなら（5語まで自由記述）</label>
       <input type="text" data-key="b_adjs" placeholder="例：上品 / 挑戦 / 旅 / 自由 / 凛とした" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>サイトを「もの」に例えるなら</label>
+      <label class="label">サイトを「もの」に例えるなら</label>
       <div class="help">例：「上質な革張りのノート」「白い大理石のテーブル」「夕暮れの空港」など</div>
       <input type="text" data-key="b_thing" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>「場所」に例えるなら</label>
+      <label class="label">「場所」に例えるなら</label>
       <div class="help">例：パリ／京都／ニューヨーク／自宅の書斎</div>
       <input type="text" data-key="b_place" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="nice">○できれば</span>「香り」に例えるなら</label>
+      <label class="label">「香り」に例えるなら</label>
       <div class="help">例：ジャスミン／ウッディ／シトラス</div>
       <input type="text" data-key="b_scent" />
     </div>
@@ -603,7 +631,7 @@
     <div class="subtitle">具体的な参照点を集めます。ジャンル不問。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>「こういう世界観にしたい」サイトを 3〜5つ</label>
+      <label class="label">「こういう世界観にしたい」サイトを 3〜5つ</label>
       <div class="multi-row">
         <input type="url" data-key="r_like1_url" placeholder="URL ①" />
         <input type="text" data-key="r_like1_why" placeholder="好きな理由" />
@@ -627,7 +655,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>「こうはしたくない」サイトを 2〜3つ</label>
+      <label class="label">「こうはしたくない」サイトを 2〜3つ</label>
       <div class="multi-row">
         <input type="url" data-key="r_avoid1_url" placeholder="URL ①" />
         <input type="text" data-key="r_avoid1_why" placeholder="避けたい理由" />
@@ -643,18 +671,18 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>好きな雑誌</label>
+      <label class="label">好きな雑誌</label>
       <div class="help">例：VOGUE／Numéro／Casa BRUTUS／&Premium</div>
       <input type="text" data-key="r_mag" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="nice">○できれば</span>好きなブランド店舗・ホテル・カフェの空間</label>
+      <label class="label">好きなブランド店舗・ホテル・カフェの空間</label>
       <input type="text" data-key="r_space" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="nice">○できれば</span>好きな写真集・本の装丁</label>
+      <label class="label">好きな写真集・本の装丁</label>
       <input type="text" data-key="r_book" />
     </div>
   </section>
@@ -666,7 +694,7 @@
     <div class="subtitle">サイトの色のトーンを決めます。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>既存ブランド（Emiria Wiz, Venus Beauty, Norm Plus 等）のブランドカラー</label>
+      <label class="label">既存ブランド（Emiria Wiz, Venus Beauty, Norm Plus 等）のブランドカラー</label>
       <div class="options" data-group="c_brand">
         <label class="opt"><input type="radio" name="c_brand" value="踏襲する"><span>踏襲する</span></label>
         <label class="opt"><input type="radio" name="c_brand" value="別軸で立てる"><span>別軸で立てる</span></label>
@@ -676,7 +704,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>メインカラーの方向性（複数選択可）</label>
+      <label class="label">メインカラーの方向性（複数選択可）</label>
       <div class="options" data-group="c_main">
         <label class="opt"><input type="checkbox" name="c_main" value="白＋黒のモノクロ系"><span>白＋黒のモノクロ系</span></label>
         <label class="opt"><input type="checkbox" name="c_main" value="ベージュ・アイボリー・クリーム系"><span>ベージュ・アイボリー</span></label>
@@ -689,12 +717,12 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="nice">○できれば</span>その他のカラー希望（具体的に）</label>
+      <label class="label">その他のカラー希望（具体的に）</label>
       <input type="text" data-key="c_other" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>絶対に避けたい色</label>
+      <label class="label">絶対に避けたい色</label>
       <input type="text" data-key="c_avoid" />
     </div>
   </section>
@@ -706,7 +734,7 @@
     <div class="subtitle">和文・欧文それぞれの好みをお聞きします。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>和文書体の方向性</label>
+      <label class="label">和文書体の方向性</label>
       <div class="options" data-group="t_jp">
         <label class="opt"><input type="radio" name="t_jp" value="明朝体"><span>明朝体（上品・伝統的）</span></label>
         <label class="opt"><input type="radio" name="t_jp" value="ゴシック体"><span>ゴシック体（モダン・クリア）</span></label>
@@ -717,13 +745,13 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>具体的な書体イメージ（候補・好きな書体）</label>
+      <label class="label">具体的な書体イメージ（候補・好きな書体）</label>
       <div class="help">例：游明朝／A1明朝／筑紫オールド明朝／Noto Sans JP</div>
       <input type="text" data-key="t_jp_specific" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>欧文書体の方向性</label>
+      <label class="label">欧文書体の方向性</label>
       <div class="options" data-group="t_en">
         <label class="opt"><input type="radio" name="t_en" value="セリフ"><span>セリフ（Didot／Bodoni／Garamond 系）</span></label>
         <label class="opt"><input type="radio" name="t_en" value="サンセリフ"><span>サンセリフ（Helvetica／Inter／Söhne 系）</span></label>
@@ -733,7 +761,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>お名前のロゴタイプ</label>
+      <label class="label">お名前のロゴタイプ</label>
       <div class="options" data-group="t_logo">
         <label class="opt"><input type="radio" name="t_logo" value="既存ロゴあり"><span>既存ロゴあり（後日共有）</span></label>
         <label class="opt"><input type="radio" name="t_logo" value="新規制作希望"><span>新規制作希望</span></label>
@@ -742,73 +770,11 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>文字サイズの好み</label>
+      <label class="label">文字サイズの好み</label>
       <div class="options" data-group="t_size">
         <label class="opt"><input type="radio" name="t_size" value="読みやすさ重視"><span>読みやすさ重視（文字大きめ）</span></label>
         <label class="opt"><input type="radio" name="t_size" value="中庸"><span>中庸</span></label>
         <label class="opt"><input type="radio" name="t_size" value="美しさ重視"><span>美しさ重視（雑誌的・文字小さめ）</span></label>
-      </div>
-    </div>
-  </section>
-
-  <!-- 5. 写真素材 -->
-  <section id="s5">
-    <h2><span class="num">05</span>VISUAL ASSETS</h2>
-    <div class="title">写真・ビジュアル素材</div>
-    <div class="subtitle">使える素材・新規撮影の方針を確認します。</div>
-
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>利用可能な本人写真の量</label>
-      <div class="options" data-group="v_count">
-        <label class="opt"><input type="radio" name="v_count" value="数十点"><span>数十点</span></label>
-        <label class="opt"><input type="radio" name="v_count" value="数百点"><span>数百点</span></label>
-        <label class="opt"><input type="radio" name="v_count" value="数千点"><span>数千点</span></label>
-        <label class="opt"><input type="radio" name="v_count" value="未整理"><span>未整理</span></label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>写真の使用権利</label>
-      <div class="options-block" data-group="v_right">
-        <label class="opt"><input type="radio" name="v_right" value="本人保有で自由に使える"><span>本人保有で自由に使える</span></label>
-        <label class="opt"><input type="radio" name="v_right" value="一部は撮影者／媒体に確認が必要"><span>一部は撮影者／媒体に確認が必要</span></label>
-        <label class="opt"><input type="radio" name="v_right" value="権利関係未整理"><span>権利関係未整理</span></label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="imp">◎重要</span>素材の共有方法</label>
-      <div class="options" data-group="v_share">
-        <label class="opt"><input type="radio" name="v_share" value="Googleドライブ"><span>Googleドライブ</span></label>
-        <label class="opt"><input type="radio" name="v_share" value="Dropbox"><span>Dropbox</span></label>
-        <label class="opt"><input type="radio" name="v_share" value="物理メディア"><span>物理メディア</span></label>
-        <label class="opt"><input type="radio" name="v_share" value="その他"><span>その他</span></label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>本サイト用の「新規撮影」の予算化</label>
-      <div class="options" data-group="v_shoot">
-        <label class="opt"><input type="radio" name="v_shoot" value="予算化済み"><span>予算化済み</span></label>
-        <label class="opt"><input type="radio" name="v_shoot" value="別途検討"><span>別途検討</span></label>
-        <label class="opt"><input type="radio" name="v_shoot" value="今回は既存素材のみ"><span>今回は既存素材のみで対応希望</span></label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="imp">◎重要</span>撮影希望のロケーション・テーマ</label>
-      <textarea data-key="v_shoot_theme"></textarea>
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>トップページのヒーロー画像 想定</label>
-      <div class="options-block" data-group="v_hero">
-        <label class="opt"><input type="radio" name="v_hero" value="本人のポートレート"><span>本人のポートレート（顔写真メイン）</span></label>
-        <label class="opt"><input type="radio" name="v_hero" value="本人＋風景の引き"><span>本人＋風景の引きの写真</span></label>
-        <label class="opt"><input type="radio" name="v_hero" value="シネマティックな動画"><span>シネマティックな動画</span></label>
-        <label class="opt"><input type="radio" name="v_hero" value="物・風景・抽象"><span>物・風景・抽象ビジュアル（人物は控えめ）</span></label>
-        <label class="opt"><input type="radio" name="v_hero" value="タイポグラフィのみ"><span>タイポグラフィのみ</span></label>
-        <label class="opt"><input type="radio" name="v_hero" value="お任せ"><span>お任せ</span></label>
       </div>
     </div>
   </section>
@@ -820,7 +786,7 @@
     <div class="subtitle">サイト全体のアニメーション量を決めます。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>サイト全体の動きの強さ</label>
+      <label class="label">サイト全体の動きの強さ</label>
       <div class="options-block" data-group="m_level">
         <label class="opt"><input type="radio" name="m_level" value="静的"><span>静的（動きは最小限・印刷物のような佇まい）</span></label>
         <label class="opt"><input type="radio" name="m_level" value="軽やかに動く"><span>軽やかに動く（ホバー・スクロールで適度なアニメ）</span></label>
@@ -830,7 +796,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>動画背景の使用</label>
+      <label class="label">動画背景の使用</label>
       <div class="options" data-group="m_video">
         <label class="opt"><input type="radio" name="m_video" value="トップに使いたい"><span>トップに使いたい</span></label>
         <label class="opt"><input type="radio" name="m_video" value="使わない"><span>使わない</span></label>
@@ -846,18 +812,18 @@
     <div class="subtitle">各セクションの内容を固めます。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>「想い」セクションで伝えたい核心メッセージ（200字程度）</label>
+      <label class="label">「想い」セクションで伝えたい核心メッセージ（200字程度）</label>
       <textarea data-key="con_message" style="min-height:140px"></textarea>
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>ヒストリー：主な年代・出来事の一覧</label>
+      <label class="label">ヒストリー：主な年代・出来事の一覧</label>
       <div class="help">「西暦 / 出来事 / 補足」を1行ずつ記入してください</div>
       <textarea data-key="con_history" style="min-height:180px" placeholder="2010 / モデルデビュー / ...&#10;2013 / Emiria Wiz ローンチ / ...&#10;..."></textarea>
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>著書5冊の情報</label>
+      <label class="label">著書5冊の情報</label>
       <div class="help">書名／発行年／出版社／購入リンク</div>
       <input type="text" data-key="con_book1" placeholder="① 例：「〜〜〜」/ 2018 / 〇〇社" />
       <div style="height:6px"></div>
@@ -871,26 +837,42 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>各事業の一言キャッチコピーとURL</label>
-      <div class="help">「キャッチコピー / URL」の形式で</div>
-      <input type="text" data-key="con_biz1" placeholder="Emiria Wiz：" />
-      <div style="height:6px"></div>
-      <input type="text" data-key="con_biz2" placeholder="Venus Beauty Clinic：" />
-      <div style="height:6px"></div>
-      <input type="text" data-key="con_biz3" placeholder="Norm Plus：" />
-      <div style="height:6px"></div>
-      <input type="text" data-key="con_biz4" placeholder="Maison de Beauté：" />
-      <div style="height:6px"></div>
-      <input type="text" data-key="con_biz5" placeholder="Lumily：" />
+      <label class="label">各事業の一言キャッチコピーとURL</label>
+      <div class="help">事業ごとに「キャッチコピー」と「URL」を入力してください</div>
+      <div class="biz-row">
+        <span class="biz-name">Emiria Wiz</span>
+        <input type="text" data-key="con_biz1_copy" placeholder="キャッチコピー" />
+        <input type="url"  data-key="con_biz1_url"  placeholder="URL" />
+      </div>
+      <div class="biz-row">
+        <span class="biz-name">Venus Beauty Clinic</span>
+        <input type="text" data-key="con_biz2_copy" placeholder="キャッチコピー" />
+        <input type="url"  data-key="con_biz2_url"  placeholder="URL" />
+      </div>
+      <div class="biz-row">
+        <span class="biz-name">Norm Plus</span>
+        <input type="text" data-key="con_biz3_copy" placeholder="キャッチコピー" />
+        <input type="url"  data-key="con_biz3_url"  placeholder="URL" />
+      </div>
+      <div class="biz-row">
+        <span class="biz-name">Maison de Beauté</span>
+        <input type="text" data-key="con_biz4_copy" placeholder="キャッチコピー" />
+        <input type="url"  data-key="con_biz4_url"  placeholder="URL" />
+      </div>
+      <div class="biz-row">
+        <span class="biz-name">Lumily</span>
+        <input type="text" data-key="con_biz5_copy" placeholder="キャッチコピー" />
+        <input type="url"  data-key="con_biz5_url"  placeholder="URL" />
+      </div>
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>サイトに表示する事業の優先順位（先に見せたい順）</label>
+      <label class="label">サイトに表示する事業の優先順位（先に見せたい順）</label>
       <input type="text" data-key="con_biz_order" placeholder="例：Emiria Wiz → Norm Plus → Venus → Maison → Lumily" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>ニュースのカテゴリ（候補・複数選択可）</label>
+      <label class="label">ニュースのカテゴリ（候補・複数選択可）</label>
       <div class="options" data-group="con_news_cat">
         <label class="opt"><input type="checkbox" name="con_news_cat" value="メディア出演"><span>メディア出演</span></label>
         <label class="opt"><input type="checkbox" name="con_news_cat" value="イベント"><span>イベント</span></label>
@@ -901,25 +883,17 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="nice">○できれば</span>その他のカテゴリ希望</label>
+      <label class="label">その他のカテゴリ希望</label>
       <input type="text" data-key="con_news_cat_other" />
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>過去のニュース記事の移行</label>
-      <div class="options" data-group="con_news_migrate">
-        <label class="opt"><input type="radio" name="con_news_migrate" value="移行する"><span>移行する</span></label>
-        <label class="opt"><input type="radio" name="con_news_migrate" value="新規からスタート"><span>新規からスタート</span></label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>コラムのテーマ（決まっている範囲で）</label>
+      <label class="label">コラムのテーマ（決まっている範囲で）</label>
       <textarea data-key="con_column"></textarea>
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>コラム想定文字数 / 初回公開時の本数</label>
+      <label class="label">コラム想定文字数 / 初回公開時の本数</label>
       <div class="double">
         <input type="text" data-key="con_column_len" placeholder="想定文字数（例：2,000字）" />
         <input type="text" data-key="con_column_count" placeholder="初回公開時の本数（例：3本）" />
@@ -934,7 +908,7 @@
     <div class="subtitle">問合せの種類分岐・受信先を決めます。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>フォームの分岐</label>
+      <label class="label">フォームの分岐</label>
       <div class="options" data-group="ct_branch">
         <label class="opt"><input type="checkbox" name="ct_branch" value="一本化（自由記述）"><span>一本化（自由記述）</span></label>
         <label class="opt"><input type="checkbox" name="ct_branch" value="取材・メディア"><span>取材・メディア</span></label>
@@ -945,13 +919,13 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>受信先メールアドレス</label>
+      <label class="label">受信先メールアドレス</label>
       <div class="help">分岐ごとに異なる場合は、分岐名と一緒に記入してください</div>
       <textarea data-key="ct_email"></textarea>
     </div>
 
     <div class="field">
-      <label class="label"><span class="nice">○できれば</span>自動返信メールの文面</label>
+      <label class="label">自動返信メールの文面</label>
       <div class="options" data-group="ct_auto">
         <label class="opt"><input type="radio" name="ct_auto" value="GROW UPに雛型作成依頼"><span>GROW UPで雛型作成 → 確認・修正</span></label>
         <label class="opt"><input type="radio" name="ct_auto" value="クライアント用意"><span>こちらで用意</span></label>
@@ -966,7 +940,7 @@
     <div class="subtitle">表示・誘導したいSNSのURLを共有ください。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>各SNSのURL</label>
+      <label class="label">各SNSのURL</label>
       <div class="multi-row">
         <div>Instagram</div>
         <input type="url" data-key="sns_ig" placeholder="https://instagram.com/..." />
@@ -994,7 +968,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>Instagram投稿のフィード表示</label>
+      <label class="label">Instagram投稿のフィード表示</label>
       <div class="options" data-group="sns_feed">
         <label class="opt"><input type="radio" name="sns_feed" value="トップに表示"><span>トップに表示</span></label>
         <label class="opt"><input type="radio" name="sns_feed" value="別ページで表示"><span>別ページで表示</span></label>
@@ -1010,7 +984,7 @@
     <div class="subtitle">海外フォロワー向けの英語版について。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>英語版の翻訳ソース</label>
+      <label class="label">英語版の翻訳ソース</label>
       <div class="options" data-group="en_src">
         <label class="opt"><input type="radio" name="en_src" value="プロ翻訳に依頼"><span>日本語版完成後にプロ翻訳に依頼</span></label>
         <label class="opt"><input type="radio" name="en_src" value="クライアント側で用意"><span>クライアント側で翻訳ご用意</span></label>
@@ -1019,7 +993,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>英語版の構造</label>
+      <label class="label">英語版の構造</label>
       <div class="options" data-group="en_struct">
         <label class="opt"><input type="radio" name="en_struct" value="完全同じ"><span>日本語版と完全に同じ</span></label>
         <label class="opt"><input type="radio" name="en_struct" value="要約版"><span>要約版（主要セクションのみ）</span></label>
@@ -1028,7 +1002,7 @@
     </div>
 
     <div class="field">
-      <label class="label"><span class="nice">○できれば</span>英語版で特に強調したいメッセージ</label>
+      <label class="label">英語版で特に強調したいメッセージ</label>
       <textarea data-key="en_emphasis"></textarea>
     </div>
   </section>
@@ -1040,17 +1014,17 @@
     <div class="subtitle">触れない範囲・配慮事項を明確にします。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>「これだけは表に出さないで」というNG事項</label>
+      <label class="label">「これだけは表に出さないで」というNG事項</label>
       <textarea data-key="ng_topic"></textarea>
     </div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>過去の話題で配慮すべきこと</label>
+      <label class="label">過去の話題で配慮すべきこと</label>
       <textarea data-key="ng_past"></textarea>
     </div>
 
     <div class="field">
-      <label class="label"><span class="imp">◎重要</span>写真使用に関するNG（特定の写真／時期／衣装等）</label>
+      <label class="label">写真使用に関するNG（特定の写真／時期／衣装等）</label>
       <textarea data-key="ng_photo"></textarea>
     </div>
   </section>
@@ -1062,35 +1036,12 @@
     <div class="subtitle">デザイン確認の進め方を決めます。</div>
 
     <div class="field">
-      <label class="label"><span class="req">★必須</span>デザインカンプ確認の最終判断者</label>
-      <div class="options" data-group="ap_decider">
-        <label class="opt"><input type="radio" name="ap_decider" value="愛沢えみり様ご本人"><span>愛沢えみり様ご本人</span></label>
-        <label class="opt"><input type="radio" name="ap_decider" value="制作チーム"><span>御社の制作チーム</span></label>
-        <label class="opt"><input type="radio" name="ap_decider" value="両方"><span>両方</span></label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="nice">○できれば</span>両方の場合、誰の意見が最優先か</label>
-      <input type="text" data-key="ap_priority" />
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>確認・修正のターンアラウンド目安</label>
+      <label class="label">確認・修正のターンアラウンド目安</label>
       <div class="options" data-group="ap_turn">
         <label class="opt"><input type="radio" name="ap_turn" value="即日"><span>即日</span></label>
         <label class="opt"><input type="radio" name="ap_turn" value="2日以内"><span>2日以内</span></label>
         <label class="opt"><input type="radio" name="ap_turn" value="1週間"><span>1週間</span></label>
         <label class="opt"><input type="radio" name="ap_turn" value="その都度"><span>その都度</span></label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label"><span class="req">★必須</span>デザイン承認の進め方</label>
-      <div class="options-block" data-group="ap_flow">
-        <label class="opt"><input type="radio" name="ap_flow" value="トップ1案で承認後、下層展開"><span>トップページ1案で承認後、下層展開</span></label>
-        <label class="opt"><input type="radio" name="ap_flow" value="トップ2〜3案を比較してから絞る"><span>トップページ2〜3案を比較してから絞る</span></label>
-        <label class="opt"><input type="radio" name="ap_flow" value="主要ページ一括で複数案"><span>主要ページ一括で複数案</span></label>
       </div>
     </div>
   </section>
@@ -1192,7 +1143,22 @@ function prepareForPrint(){
     if (el.closest(".toolbar")) return;
     const div = document.createElement("div");
     div.className = "print-value " + (el.tagName === "TEXTAREA" ? "print-textarea" : "print-input");
-    div.textContent = el.value || " ";
+    const value = el.value || "";
+    // 事業行など、ラベルが placeholder で表現されているフィールドは、
+    // 印刷時に「ラベル: 値」形式で表示
+    const inBizRow = el.closest(".biz-row");
+    if (inBizRow && el.placeholder) {
+      const labelSpan = document.createElement("span");
+      labelSpan.style.cssText = "display:inline-block; min-width:88px; font-weight:700; color:#666; margin-right:8px;";
+      labelSpan.textContent = el.placeholder;
+      const valueSpan = document.createElement("span");
+      valueSpan.textContent = value || "（未記入）";
+      if (!value) valueSpan.style.color = "#aaa";
+      div.appendChild(labelSpan);
+      div.appendChild(valueSpan);
+    } else {
+      div.textContent = value || " ";
+    }
     // 元のインライン display を退避し、非表示に
     const origDisplay = el.style.display;
     el.style.display = "none";
