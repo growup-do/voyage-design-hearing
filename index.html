@@ -225,10 +225,10 @@
   @media (max-width: 640px){
     .field .multi-row { grid-template-columns: 1fr; }
   }
-  /* 事業 (Emiria Wiz etc) 行：事業名は常時表示、入力欄2つ */
+  /* 事業 (Emiria Wiz etc) 行：事業名は常時表示、キャッチコピー入力 */
   .field .biz-row {
     display: grid;
-    grid-template-columns: 160px 1.4fr 1fr;
+    grid-template-columns: 180px 1fr;
     gap: 10px;
     align-items: center;
     margin-bottom: 8px;
@@ -838,32 +838,27 @@
     </div>
 
     <div class="field">
-      <label class="label">各事業の一言キャッチコピーとURL</label>
-      <div class="help">事業ごとに「キャッチコピー」と「URL」を入力してください</div>
+      <label class="label">各事業の一言キャッチコピー</label>
+      <div class="help">サイトに掲載する事業紹介の短いキャッチコピーをご記入ください</div>
       <div class="biz-row">
         <span class="biz-name">Emiria Wiz</span>
         <input type="text" data-key="con_biz1_copy" placeholder="キャッチコピー" />
-        <input type="url"  data-key="con_biz1_url"  placeholder="URL" />
       </div>
       <div class="biz-row">
         <span class="biz-name">Venus Beauty Clinic</span>
         <input type="text" data-key="con_biz2_copy" placeholder="キャッチコピー" />
-        <input type="url"  data-key="con_biz2_url"  placeholder="URL" />
       </div>
       <div class="biz-row">
         <span class="biz-name">Norm Plus</span>
         <input type="text" data-key="con_biz3_copy" placeholder="キャッチコピー" />
-        <input type="url"  data-key="con_biz3_url"  placeholder="URL" />
       </div>
       <div class="biz-row">
         <span class="biz-name">Maison de Beauté</span>
         <input type="text" data-key="con_biz4_copy" placeholder="キャッチコピー" />
-        <input type="url"  data-key="con_biz4_url"  placeholder="URL" />
       </div>
       <div class="biz-row">
         <span class="biz-name">Lumily</span>
         <input type="text" data-key="con_biz5_copy" placeholder="キャッチコピー" />
-        <input type="url"  data-key="con_biz5_url"  placeholder="URL" />
       </div>
     </div>
 
@@ -1209,10 +1204,10 @@ function buildText(){
     if (v) out += `　　${i}. ${v}\n`;
   }
   const bizNames = ["Emiria Wiz","Venus Beauty Clinic","Norm Plus","Maison de Beauté","Lumily"];
-  out += "\n　[各事業]\n";
+  out += "\n　[各事業 キャッチコピー]\n";
   for (let i=1;i<=5;i++){
-    const c = get(`con_biz${i}_copy`), u = get(`con_biz${i}_url`);
-    if (c || u) out += `　　・${bizNames[i-1]}\n　　　　キャッチコピー：${c}\n　　　　URL：${u}\n`;
+    const c = get(`con_biz${i}_copy`);
+    if (c) out += `　　・${bizNames[i-1]}：${c}\n`;
   }
   out += line("事業の表示優先順位", get("con_biz_order"));
   out += line("ニュースカテゴリ", checks("con_news_cat"));
