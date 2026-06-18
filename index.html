@@ -386,17 +386,98 @@
   .print-value.print-textarea { min-height: 3.4em; }
   .print-value:empty::before { content: " "; color: transparent; }
 
+  /* ----- 印刷モード（body.printing + @media print 両対応） ----- */
+  .toolbar, .toc, .submit-area, footer.brand-footer, .note { /* placeholder for grouping */ }
   body.printing .toolbar,
   body.printing .toc,
   body.printing .submit-area,
   body.printing footer.brand-footer,
-  body.printing .note {
+  body.printing .note,
+  body.printing #pdf-loading,
+  body.printing header::after {
     display: none !important;
   }
-  body.printing header::after { display: none; }
+  body.printing { background: white !important; font-size: 11pt; }
+  body.printing header {
+    background: white !important;
+    color: var(--black) !important;
+    padding: 12px 0 20px !important;
+    border-bottom: 2px solid var(--black);
+  }
+  body.printing header .brand { color: var(--dark) !important; }
+  body.printing header h1 { color: var(--black) !important; font-size: 22pt; }
+  body.printing header p.intro { color: var(--dark) !important; }
+  body.printing main { padding: 8px 0; max-width: 100%; }
+  body.printing section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #ccc;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    background: white !important;
+  }
+  body.printing section h2 { color: var(--black) !important; }
+  body.printing section h2 .num {
+    background: var(--yellow) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing section .title { font-size: 16pt; }
+  body.printing section .subtitle { font-size: 10pt; }
+  body.printing .field { margin-bottom: 12px; break-inside: avoid; page-break-inside: avoid; }
+  body.printing .field .label { font-size: 10pt; }
+  body.printing input[type="text"],
+  body.printing input[type="url"],
+  body.printing input[type="email"],
+  body.printing input[type="number"],
+  body.printing textarea,
+  body.printing select {
+    display: none !important;
+  }
+  body.printing .print-value { display: block !important; }
+  body.printing .print-value.print-input {
+    background: white;
+    border: none;
+    border-bottom: 1px solid #888;
+    padding: 4px 0;
+  }
+  body.printing .opt span {
+    background: white !important;
+    color: var(--dark) !important;
+    border: 1px solid #ccc !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing .opt input:checked + span {
+    background: var(--black) !important;
+    color: var(--yellow) !important;
+    border-color: var(--black) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing .field .biz-row {
+    display: block !important;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    margin-bottom: 6px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  body.printing .field .biz-row .biz-name {
+    display: inline-block;
+    background: var(--yellow) !important;
+    color: var(--black) !important;
+    padding: 2px 8px;
+    margin-bottom: 6px;
+    font-weight: 700;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing .field .biz-row .print-value { margin-top: 4px; }
 
   @media print {
-    .toolbar, .toc, .submit-area, footer.brand-footer, .note { display: none !important; }
+    /* native print 時にも body.printing 相当のスタイルを適用 */
+    .toolbar, .toc, .submit-area, footer.brand-footer, .note, #pdf-loading { display: none !important; }
     body { background: white; font-size: 11pt; }
     header {
       background: white !important;
@@ -408,7 +489,6 @@
     header .brand { color: var(--dark) !important; }
     header h1 { color: var(--black) !important; font-size: 22pt; }
     header p.intro { color: var(--dark) !important; }
-
     main { padding: 8px 0; max-width: 100%; }
     section {
       break-inside: avoid;
@@ -424,64 +504,47 @@
     section .subtitle { font-size: 10pt; }
     .field { margin-bottom: 12px; break-inside: avoid; page-break-inside: avoid; }
     .field .label { font-size: 10pt; }
-    .field .label .req,
-    .field .label .imp,
-    .field .label .nice {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    /* Hide raw inputs/textareas — replaced by .print-value via JS */
-    input[type="text"],
-    input[type="url"],
-    input[type="email"],
-    input[type="number"],
-    textarea,
-    select {
-      display: none !important;
-    }
+    input[type="text"], input[type="url"], input[type="email"], input[type="number"], textarea, select { display: none !important; }
     .print-value { display: block !important; }
     .print-value.print-input { background: white; border: none; border-bottom: 1px solid #888; padding: 4px 0; }
-
-    /* Radios / Checkboxes: show all options but visually highlight checked */
-    .opt span {
-      background: white !important;
-      color: var(--dark) !important;
-      border: 1px solid #ccc !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .opt input:checked + span {
-      background: var(--black) !important;
-      color: var(--yellow) !important;
-      border-color: var(--black) !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    /* 事業行: 印刷時は事業名 + 値2つを縦並びで全文表示 */
-    .field .biz-row {
-      display: block !important;
-      padding: 8px 10px;
-      border: 1px solid #ddd;
-      margin-bottom: 6px;
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-    .field .biz-row .biz-name {
-      display: inline-block;
-      background: var(--yellow) !important;
-      color: var(--black) !important;
-      padding: 2px 8px;
-      margin-bottom: 6px;
-      font-weight: 700;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .field .biz-row .print-value {
-      margin-top: 4px;
-    }
+    .opt span { background: white !important; color: var(--dark) !important; border: 1px solid #ccc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .opt input:checked + span { background: var(--black) !important; color: var(--yellow) !important; border-color: var(--black) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .field .biz-row { display: block !important; padding: 8px 10px; border: 1px solid #ddd; margin-bottom: 6px; page-break-inside: avoid; break-inside: avoid; }
+    .field .biz-row .biz-name { display: inline-block; background: var(--yellow) !important; color: var(--black) !important; padding: 2px 8px; margin-bottom: 6px; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .field .biz-row .print-value { margin-top: 4px; }
   }
+
+  /* ----- PDF生成中のローディング表示 ----- */
+  #pdf-loading {
+    position: fixed;
+    inset: 0;
+    background: rgba(17,17,17,.85);
+    color: var(--yellow);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    font-family: "DM Sans", sans-serif;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+  #pdf-loading.show { display: flex; }
+  #pdf-loading .spinner {
+    width: 44px; height: 44px;
+    border: 3px solid var(--dark);
+    border-top-color: var(--yellow);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  #pdf-loading .msg {
+    color: var(--white);
+    font-family: "Noto Sans JP", sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   @page {
     size: A4;
@@ -490,6 +553,11 @@
 </style>
 </head>
 <body>
+
+<div id="pdf-loading" aria-hidden="true">
+  <div class="spinner"></div>
+  <div class="msg">PDFを生成しています…</div>
+</div>
 
 <header>
   <div class="brand">GROW UP × VOYAGE</div>
@@ -1250,26 +1318,142 @@ function buildText(){
   return out;
 }
 
-function sendMail(){
-  const text = buildText();
-  const subject = "愛沢えみり様 公式サイト デザインヒアリング 回答";
-  // mailtoは長文だとメーラーで切られることがあるため、本文が長い場合は警告
-  const LIMIT = 1800;
-  let body = text;
-  let note = "";
-  if (text.length > LIMIT) {
-    body = text.slice(0, LIMIT);
-    note = "\n\n────────────────────────────\n"
-         + "※ 全文が長いため、メーラーで本文が途中で\n"
-         + "　切られる場合があります。\n"
-         + "　その場合は「PDFで保存」ボタンで PDF を作成し、\n"
-         + "　このメールに添付してお送りください。\n";
+// ===== html2pdf を遅延ロード =====
+let _html2pdfLoading = null;
+function ensureHtml2Pdf(){
+  if (window.html2pdf) return Promise.resolve(window.html2pdf);
+  if (_html2pdfLoading) return _html2pdfLoading;
+  _html2pdfLoading = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js";
+    s.async = true;
+    s.onload = () => resolve(window.html2pdf);
+    s.onerror = () => { _html2pdfLoading = null; reject(new Error("html2pdf読み込み失敗")); };
+    document.head.appendChild(s);
+  });
+  return _html2pdfLoading;
+}
+
+function showLoading(msg){
+  const el = document.getElementById("pdf-loading");
+  if (el){
+    el.querySelector(".msg").textContent = msg || "PDFを生成しています…";
+    el.classList.add("show");
   }
-  const href = "mailto:suzuki@growup-do.com"
-             + "?subject=" + encodeURIComponent(subject)
-             + "&body=" + encodeURIComponent(body + note);
-  window.location.href = href;
-  flashStatus("メーラーを起動しました");
+}
+function hideLoading(){
+  const el = document.getElementById("pdf-loading");
+  if (el) el.classList.remove("show");
+}
+
+// ===== PDF Blob を生成（html2pdf） =====
+async function generatePDFBlob(filename){
+  await ensureHtml2Pdf();
+  prepareForPrint();
+  // 一度フレームを跨ぐ＋フォント読込待ち
+  await new Promise(r => requestAnimationFrame(r));
+  try { await (document.fonts && document.fonts.ready); } catch(e){}
+  await new Promise(r => setTimeout(r, 80));
+
+  const opt = {
+    margin: [10, 8, 12, 8],
+    filename: filename,
+    image: { type: "jpeg", quality: 0.95 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+      backgroundColor: "#ffffff",
+      windowWidth: 960
+    },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    pagebreak: { mode: ["css", "legacy"], avoid: [ "section", ".field", ".biz-row" ] }
+  };
+
+  try {
+    const worker = html2pdf().set(opt).from(document.body);
+    const blob = await worker.outputPdf("blob");
+    return blob;
+  } finally {
+    cleanupAfterPrint();
+  }
+}
+
+// ===== GROW UPへ送信（PDF自動添付 → Web Share / mailto フォールバック）=====
+async function sendMail(btn){
+  const buttons = document.querySelectorAll('button[onclick^="sendMail"]');
+  const origText = [];
+  buttons.forEach(b => {
+    origText.push(b.innerHTML);
+    b.disabled = true;
+    b.innerHTML = "📄 生成中…";
+  });
+
+  showLoading("PDFを生成しています…");
+
+  const today = new Date().toISOString().slice(0,10);
+  const filename = `愛沢えみり様_デザインヒアリング_${today}.pdf`;
+  const subject = "愛沢えみり様 公式サイト デザインヒアリング 回答";
+  const body = "GROW UP 様\n\n愛沢えみり様 公式サイト デザインヒアリングの回答を、\n添付PDFにてお送りいたします。\n\nご確認のほどよろしくお願いいたします。\n";
+
+  let blob;
+  try {
+    blob = await generatePDFBlob(filename);
+  } catch(e){
+    hideLoading();
+    buttons.forEach((b,i) => { b.disabled = false; b.innerHTML = origText[i]; });
+    alert("PDFの生成に失敗しました。\n通信状況をご確認のうえ、もう一度お試しください。\n\n" + (e && e.message ? e.message : e));
+    return;
+  }
+
+  const file = new File([blob], filename, { type: "application/pdf" });
+
+  // 1) Web Share API（モバイル・最新ブラウザ）でファイル付き共有
+  if (navigator.canShare && navigator.canShare({ files: [file] })){
+    try {
+      showLoading("メーラーに渡しています…");
+      await navigator.share({ files: [file], title: subject, text: body });
+      flashStatus("送信を開始しました");
+      hideLoading();
+      buttons.forEach((b,i) => { b.disabled = false; b.innerHTML = origText[i]; });
+      return;
+    } catch(e){
+      if (e && e.name === "AbortError"){
+        flashStatus("キャンセルしました");
+        hideLoading();
+        buttons.forEach((b,i) => { b.disabled = false; b.innerHTML = origText[i]; });
+        return;
+      }
+      // 共有失敗 → フォールバックへ
+      console.warn("Web Share failed, falling back:", e);
+    }
+  }
+
+  // 2) フォールバック：PDFをダウンロード → メーラーに案内を入れて起動
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  const fallbackBody = body
+    + "\n────────────────────────────\n"
+    + "※ お使いのブラウザでは PDF の自動添付に対応していないため、\n"
+    + `　ダウンロードした PDF「${filename}」を、\n`
+    + "　このメールに添付してお送りください。\n";
+
+  showLoading("メーラーを起動します…");
+  setTimeout(() => {
+    window.location.href = "mailto:suzuki@growup-do.com"
+      + "?subject=" + encodeURIComponent(subject)
+      + "&body=" + encodeURIComponent(fallbackBody);
+    flashStatus("PDFをダウンロードしました。メーラーに添付してください");
+    hideLoading();
+    buttons.forEach((b,i) => { b.disabled = false; b.innerHTML = origText[i]; });
+  }, 600);
 }
 
 // ============= PDF 保存 =============
@@ -1329,10 +1513,21 @@ function savePDF(){
   }, 80);
 }
 
-// afterprint で必ず元に戻す（印刷キャンセル時も発火）
-window.addEventListener("afterprint", cleanupAfterPrint);
+// ネイティブ印刷（Cmd+P 等）でも自動的にプリント用整形を適用
+let _autoPrintPrepared = false;
+window.addEventListener("beforeprint", () => {
+  if (_printSnapshot.length === 0){
+    prepareForPrint();
+    _autoPrintPrepared = true;
+  }
+});
+window.addEventListener("afterprint", () => {
+  cleanupAfterPrint();
+  _autoPrintPrepared = false;
+});
 // 古いブラウザのフォールバック
-window.matchMedia && window.matchMedia("print").addEventListener("change", e => {
+window.matchMedia && window.matchMedia("print").addEventListener &&
+window.matchMedia("print").addEventListener("change", e => {
   if (!e.matches) cleanupAfterPrint();
 });
 </script>
