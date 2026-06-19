@@ -518,6 +518,31 @@
     size: A4;
     margin: 12mm 10mm 14mm;
   }
+
+  /* ===== 管理者閲覧モード (?admin=...) ===== */
+  body.admin-view .field input[type="text"],
+  body.admin-view .field input[type="url"],
+  body.admin-view .field input[type="email"],
+  body.admin-view .field input[type="number"],
+  body.admin-view .field textarea {
+    background: #fffdf0;
+    border-color: var(--yellow);
+    cursor: default;
+  }
+  body.admin-view .field input:focus,
+  body.admin-view .field textarea:focus {
+    box-shadow: 0 0 0 3px var(--light4);
+  }
+  body.admin-view .opt {
+    pointer-events: none;
+  }
+  body.admin-view .toolbar .btn,
+  body.admin-view .submit-area {
+    display: none !important;
+  }
+  body.admin-view header {
+    background: #1E1E1E;
+  }
 </style>
 </head>
 <body>
@@ -1099,11 +1124,18 @@
   GROW UP / 株式会社グロウアップ &nbsp;|&nbsp; growup-do.com
 </footer>
 
+<!-- ===== Firebase 設定（configure.sh が自動上書き） ===== -->
 <script>
+window.FIREBASE_CONFIG = null; // setup後、ここに configure.sh が値を埋め込みます
+</script>
+
+<script type="module">
 const STORAGE_KEY = "voyage_design_hearing_v1";
+const DOC_ID = "voyage";                       // 1クライアント = 1ドキュメント
+const ADMIN_PASSPHRASE = "growup2026voyage";   // ?admin=... で閲覧
 
 // ============= Auto Save =============
-function saveAll(){
+function collectFormData(){
   const data = {};
   document.querySelectorAll("[data-key]").forEach(el => {
     data[el.dataset.key] = el.value;
@@ -1119,14 +1151,10 @@ function saveAll(){
       data["_check_" + name] = Array.from(inputs).filter(i => i.checked).map(i => i.value);
     }
   });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  flashStatus("保存しました");
+  return data;
 }
-function loadAll(){
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return;
-  let data;
-  try { data = JSON.parse(raw); } catch(e){ return; }
+function applyFormData(data){
+  if (!data) return;
   document.querySelectorAll("[data-key]").forEach(el => {
     if (data[el.dataset.key] !== undefined) el.value = data[el.dataset.key];
   });
@@ -1143,17 +1171,148 @@ function loadAll(){
     }
   });
 }
+
 let flashTimer;
 function flashStatus(msg){
   const s = document.getElementById("status");
+  if (!s) return;
   s.textContent = msg;
   clearTimeout(flashTimer);
-  flashTimer = setTimeout(() => { s.textContent = "自動保存ON"; }, 1800);
+  flashTimer = setTimeout(() => { s.textContent = isAdmin() ? "閲覧モード" : (cloudReady ? "クラウド保存ON" : "自動保存ON（ローカル）"); }, 1800);
 }
 
-document.addEventListener("input", () => saveAll());
-document.addEventListener("change", () => saveAll());
-window.addEventListener("load", () => loadAll());
+// ============= Cloud Sync (Firebase Firestore) =============
+let db = null;
+let cloudReady = false;
+let saveTimer = null;
+let unsubscribe = null;
+
+function isAdmin(){
+  const params = new URLSearchParams(location.search);
+  return params.get("admin") === ADMIN_PASSPHRASE;
+}
+
+async function initCloud(){
+  if (!window.FIREBASE_CONFIG){ console.warn("FIREBASE_CONFIG 未設定"); return; }
+  try {
+    const fb = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+    const fs = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+    const app = fb.initializeApp(window.FIREBASE_CONFIG);
+    db = fs.getFirestore(app);
+    cloudReady = true;
+    const ref = fs.doc(db, "hearings", DOC_ID);
+
+    // ----- 受信専用関数を保存 -----
+    window._fs = { fs, ref };
+
+    // ----- リアルタイム購読：常に最新のクラウド値で UI を上書き -----
+    // 自分の入力反映直後の echo はスキップしたい → 遅延比較する
+    let lastWrittenAt = 0;
+    unsubscribe = fs.onSnapshot(ref, (snap) => {
+      const remote = snap.data();
+      if (!remote || !remote.data) return;
+      const remoteTs = remote.updatedAt && remote.updatedAt.toMillis ? remote.updatedAt.toMillis() : 0;
+      // 自分の書き込みから1秒以内のスナップショットは無視
+      if (Math.abs(Date.now() - lastWrittenAt) < 1000) return;
+      applyFormData(remote.data);
+      flashStatus("最新の入力を受信");
+    });
+    window._fs.markWrote = () => { lastWrittenAt = Date.now(); };
+
+    flashStatus("クラウド接続OK");
+  } catch(e){
+    console.warn("Firestore 接続失敗。ローカル保存にフォールバック:", e);
+    cloudReady = false;
+  }
+}
+
+function saveLocal(data){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e){}
+}
+function loadLocal(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch(e){ return null; }
+}
+
+async function saveCloud(data){
+  if (!cloudReady || !window._fs) return;
+  try {
+    const { fs, ref, markWrote } = window._fs;
+    markWrote();
+    await fs.setDoc(ref, {
+      data: data,
+      updatedAt: fs.serverTimestamp(),
+    }, { merge: true });
+  } catch(e){
+    console.warn("クラウド保存失敗:", e);
+  }
+}
+
+let pendingSave = false;
+function scheduleSave(){
+  // 入力中のデバウンス（400ms）
+  pendingSave = true;
+  flashStatus("保存中…");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const data = collectFormData();
+    saveLocal(data);
+    if (cloudReady) {
+      await saveCloud(data);
+      flashStatus("クラウド保存しました");
+    } else {
+      flashStatus("ローカル保存しました");
+    }
+    pendingSave = false;
+  }, 400);
+}
+
+// 起動時：admin判定 → クラウド接続 → ローカルキャッシュをまず表示
+async function bootstrap(){
+  // ローカルキャッシュ即時反映（クラウド読込前のチラつき防止）
+  const local = loadLocal();
+  if (local) applyFormData(local);
+
+  await initCloud();
+
+  // adminモード：閲覧専用へ
+  if (isAdmin()){
+    document.body.classList.add("admin-view");
+    // 既存の入力欄を読み取り専用化
+    document.querySelectorAll("input, textarea, select").forEach(el => {
+      el.setAttribute("readonly", "");
+      if (el.type === "radio" || el.type === "checkbox") el.disabled = true;
+    });
+    // 保存系UIを隠す
+    document.querySelectorAll(".toolbar .btn[onclick='savePDF()']").forEach(b => {});
+    const status = document.getElementById("status");
+    if (status) status.textContent = "閲覧モード（GROW UP）";
+
+    // 管理用のメタ情報を表示
+    showAdminMeta();
+  }
+}
+
+function showAdminMeta(){
+  if (!cloudReady) return;
+  const { fs, ref } = window._fs;
+  fs.getDoc(ref).then(snap => {
+    const meta = snap.data();
+    const ts = meta && meta.updatedAt && meta.updatedAt.toDate
+      ? meta.updatedAt.toDate().toLocaleString("ja-JP")
+      : "未保存";
+    const banner = document.createElement("div");
+    banner.style.cssText = "position:sticky;top:0;z-index:60;background:#111;color:#FFF100;padding:10px 24px;font-size:12px;letter-spacing:1px;font-family:'DM Sans',sans-serif;border-bottom:3px solid #FFF100;";
+    banner.innerHTML = `🔒 ADMIN VIEW — 最終更新: <strong style="color:#fff">${ts}</strong>`;
+    document.body.insertBefore(banner, document.body.firstChild);
+  });
+}
+
+// 入力イベントで保存
+document.addEventListener("input", () => { if (!isAdmin()) scheduleSave(); });
+document.addEventListener("change", () => { if (!isAdmin()) scheduleSave(); });
+window.addEventListener("load", bootstrap);
 
 // ============= PDF 保存 =============
 // 入力欄を「内容が全て見えるブロック」に差し替えてから印刷 → PDF保存。

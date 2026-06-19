@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // VOYAGE 1クライアント分のヒアリング回答
+    // クライアントは1ドキュメントを編集、GROW UPは同じドキュメントを閲覧
+    match /hearings/{docId} {
+      allow read, write: if true;  // URL秘匿運用（GROW UP管理URLを共有しない限り入れない）
+    }
+  }
+}
