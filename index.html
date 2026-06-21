@@ -356,6 +356,17 @@
   .submit-area .btn:hover { background: var(--yellow); border-color: var(--yellow); }
   .submit-area .btn.primary { background: var(--yellow); color: var(--black); border-color: var(--yellow); font-size: 14px; padding: 12px 22px; }
   .submit-area .btn.primary:hover { background: var(--white); }
+  .submit-area .btn.big { font-size: 17px; padding: 16px 38px; letter-spacing: 1px; }
+  .submit-area .saved-at {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--light4);
+    min-height: 16px;
+  }
+  .submit-area .saved-at.flash {
+    color: var(--yellow);
+    font-weight: 700;
+  }
 
   footer.brand-footer {
     background: var(--black);
@@ -560,7 +571,7 @@
 
 <div class="toolbar">
   <div class="status" id="status">自動保存ON</div>
-  <button class="btn primary" type="button" onclick="savePDF()">📄 PDF保存</button>
+  <button class="btn primary" type="button" onclick="explicitSave()">💾 保存する</button>
 </div>
 
 <main>
@@ -1112,10 +1123,11 @@
 
   <div class="submit-area">
     <h2>SAVE</h2>
-    <p>記入内容は自動保存されています。PDFとして保存・共有することもできます。</p>
+    <p>入力内容は入力のたびに自動保存されますが、念のため「保存する」ボタンを押してください。<br>GROW UP 側で即座に確認できる状態になります。</p>
     <div class="actions">
-      <button class="btn primary" type="button" onclick="savePDF()">📄 PDF保存</button>
+      <button class="btn primary big" type="button" onclick="explicitSave()">💾 保存する</button>
     </div>
+    <p class="saved-at" id="saved-at"></p>
   </div>
 
 </main>
@@ -1268,8 +1280,65 @@ function scheduleSave(){
   }, 400);
 }
 
+// 「保存する」ボタン用：デバウンスを待たず即時保存し、明確に成功表示
+async function explicitSave(){
+  clearTimeout(saveTimer);
+  const btn = event && event.currentTarget ? event.currentTarget : null;
+  const orig = btn ? btn.innerHTML : null;
+  if (btn){ btn.disabled = true; btn.innerHTML = "💾 保存中…"; }
+
+  const data = collectFormData();
+  saveLocal(data);
+  let cloudOK = false;
+  if (cloudReady){
+    try { await saveCloud(data); cloudOK = true; } catch(e){ cloudOK = false; }
+  }
+  pendingSave = false;
+
+  const now = new Date().toLocaleString("ja-JP");
+  const savedAtEl = document.getElementById("saved-at");
+  if (savedAtEl){
+    savedAtEl.textContent = (cloudOK ? "✅ クラウドへ保存しました — " : (cloudReady ? "⚠️ クラウド保存に失敗、ローカルのみ — " : "💾 ローカルへ保存しました — ")) + now;
+    savedAtEl.classList.add("flash");
+    setTimeout(() => savedAtEl.classList.remove("flash"), 2400);
+  }
+  flashStatus(cloudOK ? "保存しました" : (cloudReady ? "クラウド失敗" : "ローカル保存"));
+
+  if (btn){
+    btn.innerHTML = "✅ 保存しました";
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = orig || "💾 保存する";
+    }, 1500);
+  }
+}
+
 // 起動時：admin判定 → クラウド接続 → ローカルキャッシュをまず表示
 async function bootstrap(){
+  // ?reset → 全データ削除（ローカル + クラウド）
+  const params = new URLSearchParams(location.search);
+  if (params.has("reset")){
+    if (confirm("⚠️ 入力内容（ローカル + クラウド）を全てリセットします。よろしいですか？")){
+      localStorage.removeItem(STORAGE_KEY);
+      try {
+        const fb = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+        const fs = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+        if (window.FIREBASE_CONFIG){
+          const app = fb.initializeApp(window.FIREBASE_CONFIG);
+          const _db = fs.getFirestore(app);
+          await fs.deleteDoc(fs.doc(_db, "hearings", DOC_ID));
+        }
+      } catch(e){ console.warn("クラウド削除エラー（無視）:", e); }
+      alert("✅ リセットしました。ページを再読み込みします。");
+      location.href = location.pathname; // ?reset 外して再読み込み
+      return;
+    } else {
+      // キャンセル時は ?reset を消して通常起動
+      location.href = location.pathname;
+      return;
+    }
+  }
+
   // ローカルキャッシュ即時反映（クラウド読込前のチラつき防止）
   const local = loadLocal();
   if (local) applyFormData(local);
@@ -1360,15 +1429,6 @@ function cleanupAfterPrint(){
   });
   _printSnapshot = [];
   document.body.classList.remove("printing");
-}
-
-function savePDF(){
-  prepareForPrint();
-  flashStatus("PDFプレビューを開きます");
-  // 描画反映待ち
-  setTimeout(() => {
-    window.print();
-  }, 80);
 }
 
 // ネイティブ印刷（Cmd+P 等）でも自動的にプリント用整形を適用
