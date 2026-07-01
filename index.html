@@ -397,6 +397,19 @@
   .print-value.print-textarea { min-height: 3.4em; }
   .print-value:empty::before { content: " "; color: transparent; }
 
+  /* 長文の textarea は各行単位でページまたぎ可能にする（無駄な空白を防ぐ） */
+  .field:has(.print-value.print-textarea),
+  body.printing .field:has(.print-value.print-textarea) {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+  .print-value.print-textarea {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    orphans: 3;
+    widows: 3;
+  }
+
   /* ----- 印刷モード（body.printing + @media print 両対応） ----- */
   .toolbar, .toc, .submit-area, footer.brand-footer, .note { /* placeholder for grouping */ }
   body.printing .toolbar,
