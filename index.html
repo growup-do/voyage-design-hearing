@@ -571,10 +571,17 @@
 
 <div class="toolbar">
   <div class="status" id="status">自動保存ON</div>
+  <button class="btn" type="button" onclick="savePDF()">📄 PDF保存</button>
   <button class="btn primary" type="button" onclick="explicitSave()">💾 保存する</button>
 </div>
 
 <main>
+  <div id="offline-warning" style="display:none; background:#fff5c0; border:2px solid #d40; color:#b00; padding:14px 18px; margin-bottom:20px; font-size:13px; line-height:1.6;">
+    <strong>⚠️ 現在、クラウド保存が利用できない状態です。</strong><br>
+    入力内容はこのブラウザ内にのみ保存されており、GROW UP 側には送信されていません。<br>
+    <strong>ご記入完了後は必ず「📄 PDFで保存」ボタンで PDF を保存し、GROW UP へお送りください。</strong>
+  </div>
+
   <div class="note">
     <strong>ご記入のお願い:</strong> 本シートは、デザイナーが「迷わずに手を動かせる」材料を集めるためのものです。
     言葉で表現しづらい項目は、URL・画像・参考写真・SNS投稿リンク等で示していただけると大変助かります。
@@ -1123,8 +1130,9 @@
 
   <div class="submit-area">
     <h2>SAVE</h2>
-    <p>入力内容は入力のたびに自動保存されますが、念のため「保存する」ボタンを押してください。<br>GROW UP 側で即座に確認できる状態になります。</p>
+    <p>入力内容は入力のたびに自動保存されますが、念のため「保存する」ボタンを押してください。<br>GROW UP 側で即座に確認できる状態になります。<br>また、控えとして PDF でお手元に保存しておくことをおすすめします。</p>
     <div class="actions">
+      <button class="btn" type="button" onclick="savePDF()">📄 PDFで保存（控え）</button>
       <button class="btn primary big" type="button" onclick="explicitSave()">💾 保存する</button>
     </div>
     <p class="saved-at" id="saved-at"></p>
@@ -1345,6 +1353,12 @@ async function bootstrap(){
 
   await initCloud();
 
+  // クラウド未接続時：警告バナー表示（adminモードは除外）
+  if (!cloudReady && !isAdmin()){
+    const w = document.getElementById("offline-warning");
+    if (w) w.style.display = "block";
+  }
+
   // adminモード：閲覧専用へ
   if (isAdmin()){
     document.body.classList.add("admin-view");
@@ -1429,6 +1443,13 @@ function cleanupAfterPrint(){
   });
   _printSnapshot = [];
   document.body.classList.remove("printing");
+}
+
+// 「PDF保存」ボタン：プリント整形 → window.print() でブラウザのPDF保存ダイアログを開く
+function savePDF(){
+  prepareForPrint();
+  flashStatus("PDFプレビューを開きます");
+  setTimeout(() => { window.print(); }, 80);
 }
 
 // ネイティブ印刷（Cmd+P 等）でも自動的にプリント用整形を適用
