@@ -9,13 +9,15 @@ set -e
 cd "$(dirname "$0")"
 
 PROJECT_ID="voyage-hearing-growup"
+LOCATION="asia-northeast1"
+APP_DISPLAY="VOYAGE Hearing Web"
 
 echo "================================================"
 echo "  VOYAGE デザインヒアリング — Firebase セットアップ"
 echo "================================================"
 echo ""
 
-# 1. login確認
+# ----- 1. login確認 -----
 if ! firebase projects:list >/dev/null 2>&1; then
   echo "❌ firebase にログインしていません。先に以下を実行してください："
   echo "   firebase login"
@@ -23,98 +25,143 @@ if ! firebase projects:list >/dev/null 2>&1; then
 fi
 echo "✅ firebase login OK"
 
-# 2. プロジェクト作成（存在しなければ）
-if firebase projects:list 2>/dev/null | grep -q "$PROJECT_ID"; then
-  echo "✅ プロジェクト '$PROJECT_ID' は既に存在します"
+# ----- 2. プロジェクトを確保（存在＋作成＋既存許容） -----
+echo ""
+echo "📦 Firebase プロジェクトを確保中: $PROJECT_ID"
+if firebase projects:get "$PROJECT_ID" >/dev/null 2>&1; then
+  echo "   ✅ 既に存在します"
 else
-  echo "📦 Firebase プロジェクトを作成中: $PROJECT_ID"
-  firebase projects:create "$PROJECT_ID" --display-name "VOYAGE Design Hearing" || {
-    echo "⚠️  プロジェクト作成に失敗。手動でブラウザから作成してください:"
-    echo "    https://console.firebase.google.com/"
-    echo "    プロジェクトID を '$PROJECT_ID' に設定"
+  CREATE_OUTPUT=$(firebase projects:create "$PROJECT_ID" --display-name "VOYAGE Design Hearing" 2>&1 || true)
+  if echo "$CREATE_OUTPUT" | grep -qi "ready\|created"; then
+    echo "   ✅ 作成しました"
+  elif echo "$CREATE_OUTPUT" | grep -qi "already"; then
+    echo "   ✅ 既に他のセッションで作成済み"
+  else
+    echo "$CREATE_OUTPUT"
+    echo ""
+    echo "❌ プロジェクト作成に失敗。ブラウザで手動作成してください:"
+    echo "    https://console.firebase.google.com/  → プロジェクトID: $PROJECT_ID"
     exit 1
-  }
+  fi
 fi
 
-# 3. Firestore データベース作成
+# ----- 3. Firestore データベース作成（既存許容） -----
+echo ""
 echo "🗄  Firestore データベースを作成中…"
-firebase firestore:databases:create '(default)' \
-  --project "$PROJECT_ID" \
-  --location asia-northeast1 \
-  --type firestore-native 2>/dev/null \
-  || echo "    （既に作成済み）"
+DB_OUTPUT=$(firebase firestore:databases:create '(default)' \
+  --project "$PROJECT_ID" --location "$LOCATION" 2>&1 || true)
+if echo "$DB_OUTPUT" | grep -qi "successfully\|created"; then
+  echo "   ✅ 作成しました"
+elif echo "$DB_OUTPUT" | grep -qi "already exists"; then
+  echo "   ✅ 既存を利用"
+else
+  echo "$DB_OUTPUT" | tail -5
+  echo "   （既存の可能性が高いので続行）"
+fi
 
-# 4. ルールデプロイ
+# APIの伝播待ち
+sleep 5
+
+# ----- 4. ルールデプロイ（403対策で最大3回リトライ） -----
+echo ""
 echo "🔒 Firestore ルールをデプロイ中…"
-firebase deploy --project "$PROJECT_ID" --only firestore:rules
+for i in 1 2 3; do
+  RULES_OUT=$(firebase deploy --project "$PROJECT_ID" --only firestore:rules 2>&1)
+  if echo "$RULES_OUT" | grep -q "Deploy complete"; then
+    echo "   ✅ デプロイ完了"
+    break
+  fi
+  echo "   ⏳ リトライ $i/3（API有効化待ち）…"
+  sleep 8
+  if [ "$i" = "3" ]; then
+    echo "$RULES_OUT" | tail -10
+    echo "❌ ルールデプロイに失敗しました"
+    exit 1
+  fi
+done
 
-# 5. Web App を作成（存在しなければ）して config を取得
-echo "🌐 Web App を作成して config を取得中…"
-APP_DISPLAY="VOYAGE Hearing Web"
-
-# 既存アプリ確認
-APPS=$(firebase apps:list web --project "$PROJECT_ID" 2>/dev/null || true)
-APP_ID=$(echo "$APPS" | grep -i "$APP_DISPLAY" | awk -F '│' '{print $3}' | head -1 | xargs)
+# ----- 5. Web App を確保 -----
+echo ""
+echo "🌐 Web App を確保中…"
+APPS_LIST=$(firebase apps:list web --project "$PROJECT_ID" 2>/dev/null || true)
+APP_ID=$(echo "$APPS_LIST" | grep -oE '1:[0-9]+:web:[a-f0-9]+' | head -1)
 
 if [ -z "$APP_ID" ]; then
-  echo "    Web App を新規作成…"
-  firebase apps:create web "$APP_DISPLAY" --project "$PROJECT_ID"
-  APPS=$(firebase apps:list web --project "$PROJECT_ID" 2>/dev/null)
-  APP_ID=$(echo "$APPS" | grep -i "$APP_DISPLAY" | awk -F '│' '{print $3}' | head -1 | xargs)
+  echo "   Web App を新規作成…"
+  CREATE_APP=$(firebase apps:create web "$APP_DISPLAY" --project "$PROJECT_ID" 2>&1)
+  APP_ID=$(echo "$CREATE_APP" | grep -oE '1:[0-9]+:web:[a-f0-9]+' | head -1)
 fi
 
 if [ -z "$APP_ID" ]; then
   echo "❌ Web App ID を取得できませんでした"
   exit 1
 fi
+echo "   ✅ App ID: $APP_ID"
 
-echo "    App ID: $APP_ID"
+# ----- 6. SDK config を取得 -----
+echo ""
+echo "📋 SDK config を取得中…"
+SDK_OUT=$(firebase apps:sdkconfig WEB "$APP_ID" --project "$PROJECT_ID" 2>&1)
+# 末尾のJSONブロックを抜き出す（{ から } まで）
+CONFIG_JSON=$(echo "$SDK_OUT" | python3 -c '
+import sys, json, re
+text = sys.stdin.read()
+# {で始まって}で終わる最大の塊を取り出す
+m = re.search(r"\{[\s\S]*\}", text)
+if not m:
+    print("ERR_NO_JSON", file=sys.stderr); sys.exit(1)
+raw = m.group(0)
+cfg = json.loads(raw)
+# projectNumber/version は不要なので除去
+for k in ["projectNumber","version"]:
+    cfg.pop(k, None)
+# キー順を安定化
+order = ["apiKey","authDomain","projectId","storageBucket","messagingSenderId","appId"]
+sorted_cfg = {k: cfg[k] for k in order if k in cfg}
+print(json.dumps(sorted_cfg, ensure_ascii=False, indent=2))
+')
 
-# 6. SDK config を取得
-SDK_CONFIG=$(firebase apps:sdkconfig WEB "$APP_ID" --project "$PROJECT_ID" --json 2>/dev/null)
-if [ -z "$SDK_CONFIG" ]; then
-  echo "❌ SDK config を取得できませんでした"
+if [ -z "$CONFIG_JSON" ]; then
+  echo "❌ SDK config のパースに失敗"
+  echo "$SDK_OUT" | tail -20
   exit 1
 fi
 
-# JSON から config 部分を抽出
-CONFIG_JSON=$(echo "$SDK_CONFIG" | python3 -c '
-import json,sys
-data = json.load(sys.stdin)
-cfg = data.get("result", {}).get("sdkConfig", data)
-print(json.dumps(cfg, ensure_ascii=False, indent=2))
-')
-
 echo ""
-echo "📋 取得した Firebase config:"
 echo "$CONFIG_JSON"
 echo ""
 
-# 7. index.html に config を埋め込む
+# ----- 7. index.html に config を埋め込む -----
 echo "✏️  index.html を更新中…"
 python3 <<PY
-import re
-with open("index.html","r",encoding="utf-8") as f:
-    html = f.read()
+import re, pathlib
+p = pathlib.Path("index.html")
+html = p.read_text(encoding="utf-8")
 cfg = '''$CONFIG_JSON'''
-new_line = f'window.FIREBASE_CONFIG = {cfg};'
-html = re.sub(
-    r'window\.FIREBASE_CONFIG\s*=\s*[^;]+;',
+new_line = f"window.FIREBASE_CONFIG = {cfg};"
+html_new, n = re.subn(
+    r"window\.FIREBASE_CONFIG\s*=\s*[^;]+;",
     new_line,
     html,
     count=1
 )
-with open("index.html","w",encoding="utf-8") as f:
-    f.write(html)
-print("    index.html updated.")
+if n == 0:
+    print("❌ FIREBASE_CONFIG 行が見つからず更新できませんでした")
+    raise SystemExit(1)
+p.write_text(html_new, encoding="utf-8")
+print("   ✅ index.html を更新しました")
 PY
 
-# 8. git push
+# ----- 8. git push -----
 echo ""
 echo "📤 GitHub に push 中…"
-git add -A
-git commit -m "Firebase config 埋め込み (自動)" || echo "    (差分なし)"
-git push
+git add index.html
+if git diff --cached --quiet; then
+  echo "   （差分なし）"
+else
+  git commit -m "Firebase config 埋め込み (configure.sh)"
+  git push
+fi
 
 echo ""
 echo "================================================"
@@ -124,7 +171,7 @@ echo ""
 echo "クライアント用URL:"
 echo "   https://growup-do.github.io/voyage-design-hearing/"
 echo ""
-echo "GROW UP 閲覧用URL（記入内容を見るだけ・編集不可）:"
+echo "GROW UP 閲覧用URL（記入内容を確認）:"
 echo "   https://growup-do.github.io/voyage-design-hearing/?admin=growup2026voyage"
 echo ""
-echo "GitHub Pages の反映まで30秒〜1分かかります。"
+echo "GitHub Pages への反映まで30秒〜1分お待ちください。"
